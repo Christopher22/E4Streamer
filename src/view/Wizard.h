@@ -10,7 +10,9 @@
 namespace e4streamer::view {
 class Wizard : public QWizard {
  public:
-  Wizard(QWidget *widget = nullptr);
+  static constexpr const char *CONNECTION = "connection";
+
+  explicit Wizard(QWidget *widget = nullptr);
 };
 }
 

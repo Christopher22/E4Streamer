@@ -3,6 +3,7 @@
 //
 
 #include "ServerPage.h"
+#include "Wizard.h"
 #include "widgets/ServerConfig.h"
 #include "../model/Server.h"
 
@@ -63,6 +64,16 @@ void ServerPage::cleanupPage() {
 
 bool ServerPage::isComplete() const {
   return QWizardPage::isComplete() && server_config_->model()->state() == model::Server::State::Connected;
+}
+
+bool ServerPage::validatePage() {
+  auto *connection = server_config_->model()->connection();
+  if (connection == nullptr) {
+	return false;
+  }
+
+  this->wizard()->setProperty(Wizard::CONNECTION, QVariant::fromValue(connection));
+  return true;
 }
 
 }

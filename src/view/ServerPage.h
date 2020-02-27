@@ -18,6 +18,7 @@ class ServerPage : public QWizardPage {
   void initializePage() override;
   void cleanupPage() override;
   [[nodiscard]] bool isComplete() const override;
+  bool validatePage() override;
 
  private:
   widgets::ServerConfig *server_config_;
