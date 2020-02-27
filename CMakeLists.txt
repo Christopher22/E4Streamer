@@ -10,7 +10,7 @@ set(Qt5_Components Widgets Multimedia)
 find_package(Qt5 COMPONENTS ${Qt5_Components} REQUIRED)
 list(TRANSFORM Qt5_Components PREPEND "Qt5::")
 
-add_executable(E4Streamer src/main.cpp)
+add_executable(E4Streamer src/main.cpp src/model/Command.cpp src/model/Command.h src/model/Response.cpp src/model/Response.h src/model/Server.cpp src/model/Server.h src/model/Connection.cpp src/model/Connection.h src/model/Device.cpp src/model/Device.h src/model/commands/Connect.cpp src/model/commands/Connect.h src/model/commands/Disconnect.cpp src/model/commands/Disconnect.h src/model/commands/DiscoverDevices.cpp src/model/commands/DiscoverDevices.h)
 target_link_libraries(E4Streamer ${Qt5_Components})
 
 IF (WIN32)
