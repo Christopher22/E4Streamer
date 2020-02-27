@@ -14,6 +14,10 @@ Connection::Connection(QObject *parent) : QTcpSocket(parent) {
   QObject::connect(this, &QTcpSocket::readyRead, this, &Connection::_processReceivedData);
 }
 
+Connection::~Connection() {
+  this->disconnect();
+}
+
 void Connection::writeLine(const QString &line) {
   this->write(line.toUtf8());
   this->write("\r\n");
@@ -56,4 +60,14 @@ void Connection::_processReceivedData() {
   }
 }
 
+void Connection::disconnect() {
+  if (this->state() != SocketState::ConnectingState && this->state() != SocketState::ConnectedState) {
+	return;
+  }
+
+  this->disconnectFromHost();
+  if (!this->waitForDisconnected(1000)) {
+	qWarning() << "Unable to disconnect from socket: " << this->errorString();
+  }
+}
 }

@@ -9,6 +9,7 @@
 #include <QThread>
 #include <QHostAddress>
 #include <QFile>
+#include <QDebug>
 
 namespace e4streamer::model {
 
@@ -20,14 +21,20 @@ Server::Server(QString server_path, QString api_key, quint16 port, QObject *pare
 	  connection_(nullptr),
 	  background_worker_(nullptr),
 	  background_server_(nullptr),
-	  state_(State::NotConnected) {}
+	  state_(State::NotConnected) {
+
+  // Enforce cleaning in case of error
+  QObject::connect(this, &Server::connectionFailed, [&](const QString &) {
+	this->_cleanUp();
+  });
+}
 
 Server::~Server() {
   this->_cleanUp();
 }
 
 bool Server::start() {
-  if (!QFile::exists(server_path_) || api_key_.isEmpty()) {
+  if (!this->isReady()) {
 	return false;
   }
 
@@ -46,8 +53,6 @@ bool Server::start() {
 	}
 
 	if (message.contains("errors", Qt::CaseInsensitive)) {
-	  this->_cleanUp();
-
 	  // Prettify Empathica error code. Example: "following errors were discovered:\r\n\r\n- invalid port number specified"
 	  const int error_msg_starts = message.lastIndexOf('-');
 	  if (error_msg_starts != -1 && message.size() > error_msg_starts + 2) {
@@ -74,14 +79,13 @@ bool Server::start() {
 	QObject::connect(connection_,
 					 qOverload<QAbstractSocket::SocketError>(&Connection::error),
 					 [this](QAbstractSocket::SocketError socketError) {
-					   const QString error_msg = connection_->errorString();
-					   this->_cleanUp();
-					   emit this->connectionFailed(tr("Unable to open the TCP pipeline: %1").arg(error_msg));
+					   emit this
+						 ->connectionFailed(tr("Unable to open the TCP pipeline: %1").arg(connection_->errorString()));
 					 });
 
 	// ... and start them.
 	background_worker_ = new QThread(this);
-	QObject::connect(background_worker_, &QThread::destroyed, connection_, &QObject::deleteLater);
+	QObject::connect(background_worker_, &QThread::finished, connection_, &QObject::deleteLater);
 	connection_->moveToThread(background_worker_);
 
 	state_ = State::Connecting;
@@ -91,9 +95,11 @@ bool Server::start() {
 
   // Handle failure during start up
   QObject::connect(background_server_, &QProcess::errorOccurred, [this](QProcess::ProcessError error) {
-	const QString error_msg = background_server_->errorString();
-	this->_cleanUp();
-	emit this->connectionFailed(tr("The underlying Empathica server process failed. %1").arg(error_msg));
+	// Fail only once before clean-up.
+	if (state_ == State::ServerStarting) {
+	  emit this->connectionFailed(tr("The underlying Empathica server process failed. %1")
+									  .arg(background_server_->errorString()));
+	}
   });
 
   // Start the background server
@@ -103,6 +109,11 @@ bool Server::start() {
 }
 
 void Server::_cleanUp() {
+  // Ensure cleaning only once
+  if (state_ == State::NotConnected) {
+	return;
+  }
+
   state_ = State::NotConnected;
 
   // The background worker takes care of the delete
@@ -110,18 +121,42 @@ void Server::_cleanUp() {
 
   if (background_worker_ != nullptr) {
 	background_worker_->quit();
-	background_worker_->wait();
+	if (!background_worker_->wait(1000)) {
+	  qWarning("Unable to wait for the background worker!");
+	}
 	background_worker_->deleteLater();
 	background_worker_ = nullptr;
   }
 
   if (background_server_ != nullptr) {
-	if (background_server_->state() == QProcess::Running) {
+	if (background_server_->state() != QProcess::NotRunning) {
 	  background_server_->kill();
 	}
 	background_server_->deleteLater();
 	background_server_ = nullptr;
   }
+}
+
+bool Server::isReady() const noexcept {
+  return QFile::exists(server_path_) && !api_key_.isEmpty();
+}
+
+bool Server::setServerPath(const QString &server_path) {
+  return this->_set_value(server_path, [this](const QString &server_path) {
+	server_path_ = server_path;
+  });
+}
+
+bool Server::setApiKey(const QString &api_key) {
+  return this->_set_value(api_key, [this](const QString &api_key) {
+	api_key_ = api_key;
+  });
+}
+
+bool Server::setPort(quint16 port) {
+  return this->_set_value(port, [this](const quint16 &port) {
+	port_ = port;
+  });
 }
 
 }

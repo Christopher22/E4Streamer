@@ -5,6 +5,9 @@
 #ifndef E4STREAMER_SRC_MODEL_SERVER_H_
 #define E4STREAMER_SRC_MODEL_SERVER_H_
 
+// Required for propery
+#include "Connection.h"
+
 #include <QObject>
 #include <QHostAddress>
 #include <QIODevice>
@@ -13,8 +16,6 @@ class QThread;
 class QProcess;
 
 namespace e4streamer::model {
-class Connection;
-
 class Server : public QObject {
  Q_OBJECT
 
@@ -26,31 +27,35 @@ class Server : public QObject {
 	Connected
   };
 
+  Q_PROPERTY(Connection *connection
+				 READ
+					 connection
+				 NOTIFY
+				 connected)
+  Q_PROPERTY(bool ready
+				 READ
+					 isReady
+				 NOTIFY
+				 readinessChanged)
+
   explicit Server(QString server_path = QString(),
 				  QString api_key = QString(),
 				  quint16 port = 8000,
 				  QObject *parent = nullptr);
   ~Server() override;
   bool start();
+  [[nodiscard]] bool isReady() const noexcept;
 
-  inline void setPort(quint16 port) {
-	port_ = port;
-  }
+  bool setServerPath(const QString &server_path);
+  bool setApiKey(const QString &api_key);
+  bool setPort(quint16 port);
 
   [[nodiscard]] inline quint16 port() const noexcept {
 	return port_;
   }
 
-  inline void setApiKey(const QString &api_key) {
-	api_key_ = api_key;
-  }
-
   [[nodiscard]] inline QString apiKey() const noexcept {
 	return api_key_;
-  }
-
-  inline void setServerPath(const QString &server_path) {
-	server_path_ = server_path;
   }
 
   [[nodiscard]] inline QString serverPath() const noexcept {
@@ -66,12 +71,28 @@ class Server : public QObject {
   }
 
  signals:
+  void readinessChanged(bool is_ready);
   void connecting(const QHostAddress &address, quint16 port, QIODevice::OpenMode mode);
   void connectionFailed(const QString &error);
   void connected(Connection *connection);
 
  private:
   void _cleanUp();
+
+  template<typename T, typename F>
+  bool _set_value(const T &value, F setter) {
+	if (state_ != State::NotConnected) {
+	  return false;
+	}
+
+	const bool old_is_ready = this->isReady();
+	setter(value);
+	const bool new_is_ready = this->isReady();
+	if (old_is_ready != new_is_ready) {
+	  emit this->readinessChanged(new_is_ready);
+	}
+	return true;
+  }
 
   QString server_path_, api_key_;
   quint16 port_;

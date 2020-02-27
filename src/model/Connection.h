@@ -42,6 +42,8 @@ class Connection : public QTcpSocket {
   };
 
   explicit Connection(QObject *parent = nullptr);
+  ~Connection() override;
+  void disconnect();
 
   template<typename T, typename... Args>
   QueuedCommand<T> send(Args &&... args) {
