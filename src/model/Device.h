@@ -19,14 +19,20 @@ class Device : public QObject {
   enum class State {
 	NotConnected,
 	Connecting,
-	Connected
+	Connected,
+	Disconnecting
   };
 
-  Device(QString id, QString name, bool is_allowed, Connection *connection);
+  Device(QString id, QString name, bool is_allowed, Connection *connection = nullptr);
   ~Device() override;
+  [[nodiscard]] QString ToString() const;
 
-  bool connect();
-  bool disconnect();
+  bool connectDevice();
+  bool disconnectDevice();
+
+  [[nodiscard]] inline bool isConnectable() const {
+	return is_allowed_;
+  }
 
   [[nodiscard]] inline const QString &id() const {
 	return id_;
@@ -37,9 +43,10 @@ class Device : public QObject {
   }
 
  signals:
-  void connected();
-  void disconnected();
+  void connected(Device *device);
+  void disconnected(Device *device);
   void connectionFailed(const QString &error);
+  void disconnectionFailed(const QString &error);
 
  private:
   const QString id_, name_;

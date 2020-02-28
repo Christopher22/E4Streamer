@@ -13,7 +13,7 @@ class Device;
 namespace commands {
 class Disconnect : public Command {
  public:
-  Disconnect(Device *device, QObject *parent = nullptr);
+  explicit Disconnect(Device *device, QObject *parent = nullptr);
 };
 }
 }

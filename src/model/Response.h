@@ -9,9 +9,14 @@
 #include <QStringList>
 
 namespace e4streamer::model {
+class Connection;
 class Response : public QStringList {
  public:
-  static std::unique_ptr<Response> parse(const QString &raw_response);
+  static std::unique_ptr<Response> parse(Connection *connection, const QString &raw_response);
+
+  inline Connection *connection() {
+	return connection_;
+  }
 
   inline void accept() noexcept {
 	is_accepted_ = true;
@@ -26,11 +31,12 @@ class Response : public QStringList {
   }
 
  protected:
-  explicit Response(QString response_target, QStringList &&arguments);
+  explicit Response(Connection *connection, QString response_target, QStringList &&arguments);
 
  private:
   QString command_;
   bool is_accepted_;
+  Connection *connection_;
 };
 }
 

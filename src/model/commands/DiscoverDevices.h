@@ -17,16 +17,13 @@ class DiscoverDevices : public Command {
  Q_OBJECT
 
  public:
-  explicit DiscoverDevices(Connection *connection, QObject *parent = nullptr);
+  explicit DiscoverDevices(QObject *parent = nullptr);
 
  signals:
   void success(const QVector<Device *> &devices);
 
  protected:
   void handleResponse(Response *response) override;
-
- private:
-  Connection *connection_;
 };
 }
 }

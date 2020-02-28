@@ -9,9 +9,9 @@
 
 namespace e4streamer::model::commands {
 
-DiscoverDevices::DiscoverDevices(Connection *connection, QObject *parent) : Command("device_discover_list",
-																					QStringList(),
-																					parent), connection_(connection) {}
+DiscoverDevices::DiscoverDevices(QObject *parent) : Command("device_discover_list",
+															QStringList(),
+															parent) {}
 
 void DiscoverDevices::handleResponse(Response *response) {
   if (response->empty()) {
@@ -28,11 +28,13 @@ void DiscoverDevices::handleResponse(Response *response) {
   QVector<Device *> devices;
   devices.reserve(num_devices);
   for (int i = 1, size = num_devices * 4 + 1; i < size; i += 4) {
-	devices.push_back(
-		new Device((*response)[i],
-				   (*response)[i + 1],
-				   (*response)[i + 2].compare("allowed", Qt::CaseInsensitive),
-				   connection_));
+	auto *device = new Device((*response)[i],
+							  (*response)[i + 1],
+							  (*response)[i + 2].compare("allowed", Qt::CaseInsensitive),
+							  nullptr);
+	device->moveToThread(response->connection()->thread());
+	device->setParent(response->connection());
+	devices.push_back(device);
   }
 
   emit this->success(devices);
