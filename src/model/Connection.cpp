@@ -18,7 +18,7 @@ Connection::~Connection() {
   this->disconnect();
 }
 
-void Connection::writeLine(const QString &line) {
+void Connection::_writeLine(const QString &line) {
   this->write(line.toUtf8());
   this->write("\r\n");
 }
@@ -29,7 +29,7 @@ void Connection::_processReceivedData() {
 
 	if (received_string.startsWith('R')) {
 	  // Try to parse the response
-	  std::unique_ptr<Response> response = Response::parse(received_string);
+	  std::unique_ptr<Response> response = Response::parse(this, received_string);
 	  if (!response) {
 		qWarning() << "The server was unable to parse the following response:" << received_string;
 	  }
@@ -69,5 +69,14 @@ void Connection::disconnect() {
   if (!this->waitForDisconnected(1000)) {
 	qWarning() << "Unable to disconnect from socket: " << this->errorString();
   }
+}
+
+void Connection::registerCommand(Command *command) {
+  Q_ASSERT(command->thread() == this->thread());
+  Q_ASSERT(command->parent() == nullptr);
+
+  command->setParent(this);
+  commands_.push_back(command);
+  this->_writeLine(command->rawCommand());
 }
 }
