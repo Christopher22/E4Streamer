@@ -5,6 +5,8 @@
 #include "Command.h"
 #include "Response.h"
 
+#include <QDebug>
+
 namespace e4streamer::model {
 
 Command::Command(QString command, QStringList arguments, QObject *parent)
@@ -17,7 +19,7 @@ QString Command::rawCommand() const {
 }
 
 bool Command::isSuitable(Response *response) const {
-  return response->command().compare(this->command_, Qt::CaseInsensitive);
+  return response->command().compare(this->command_, Qt::CaseInsensitive) == 0;
 }
 
 bool Command::report(Response *response) {
@@ -25,11 +27,11 @@ bool Command::report(Response *response) {
 	return false;
   }
 
-  if (response->length() > 1 && (*response)[0].compare("ERR", Qt::CaseInsensitive)) {
+  if (!response->isEmpty() && (*response)[0].compare("ERR", Qt::CaseInsensitive) == 0) {
 	response->accept();
 	response->pop_front();
 	emit this->failure(response->join(' '));
-  } else if (response->length() > 1 && (*response)[0].compare("OK", Qt::CaseInsensitive)) {
+  } else if (!response->isEmpty() && (*response)[0].compare("OK", Qt::CaseInsensitive) == 0) {
 	response->accept();
 	emit this->success();
   } else {
@@ -39,8 +41,5 @@ bool Command::report(Response *response) {
   return response->is_accepted();
 }
 
-void Command::handleResponse(Response *) {
-
-}
-
+void Command::handleResponse(Response *) {}
 }

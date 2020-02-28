@@ -19,7 +19,7 @@ Device::Device(QString id, QString name, bool is_allowed, Connection *connection
 }
 
 Device::~Device() {
-  this->disconnect();
+  this->disconnectDevice();
 }
 
 bool Device::connectDevice() {
@@ -68,7 +68,7 @@ bool Device::disconnectDevice() {
 }
 
 QString Device::ToString() const {
-  return tr("'%1' (%2)").arg(id_, name_);
+  return tr("'%1' (%2)").arg(id_, name_.split('_').join(' '));
 }
 
 }

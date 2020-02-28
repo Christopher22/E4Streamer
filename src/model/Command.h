@@ -17,10 +17,10 @@ class Command : public QObject {
  public:
   [[nodiscard]] virtual QString rawCommand() const;
   virtual bool report(Response *response);
+  [[nodiscard]] bool isSuitable(Response *response) const;
 
  protected:
   Command(QString command, QStringList arguments, QObject *parent = nullptr);
-  [[nodiscard]] bool isSuitable(Response *response) const;
   virtual void handleResponse(Response *status);
 
  signals:

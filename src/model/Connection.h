@@ -50,7 +50,10 @@ class Connection : public QTcpSocket {
 
   explicit Connection(QObject *parent = nullptr);
   ~Connection() override;
-  void disconnect();
+  void disconnectFromEmpathica();
+
+  bool addChild(QObject *child);
+  bool removeChild(QObject *child);
   Q_INVOKABLE void registerCommand(Command *command);
 
   template<typename T, typename... Args>

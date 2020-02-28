@@ -7,6 +7,7 @@
 #include "Response.h"
 
 #include <QtDebug>
+#include <QThread>
 
 namespace e4streamer::model {
 
@@ -15,7 +16,7 @@ Connection::Connection(QObject *parent) : QTcpSocket(parent) {
 }
 
 Connection::~Connection() {
-  this->disconnect();
+  this->disconnectFromEmpathica();
 }
 
 void Connection::_writeLine(const QString &line) {
@@ -60,7 +61,7 @@ void Connection::_processReceivedData() {
   }
 }
 
-void Connection::disconnect() {
+void Connection::disconnectFromEmpathica() {
   if (this->state() != SocketState::ConnectingState && this->state() != SocketState::ConnectedState) {
 	return;
   }
@@ -79,4 +80,34 @@ void Connection::registerCommand(Command *command) {
   commands_.push_back(command);
   this->_writeLine(command->rawCommand());
 }
+
+bool Connection::addChild(QObject *child) {
+  if (child == nullptr || child->parent() != nullptr) {
+	qWarning("Child has already a parent");
+	return false;
+  }
+
+  if (child->thread() != this->thread()) {
+	if (QThread::currentThread() != child->thread()) {
+	  qWarning("The thread owning the child must call 'addChild'.");
+	  return false;
+	}
+	child->moveToThread(this->thread());
+  }
+
+  return QMetaObject::invokeMethod(this, [this, child] {
+	child->setParent(this);
+  });
+}
+
+bool Connection::removeChild(QObject *child) {
+  if (child == nullptr || child->thread() != this->thread()) {
+	return false;
+  }
+
+  return QMetaObject::invokeMethod(this, [child] {
+	child->deleteLater();
+  });
+}
+
 }

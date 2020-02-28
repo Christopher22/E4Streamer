@@ -57,23 +57,17 @@ void ServerPage::initializePage() {
   });
 }
 
-void ServerPage::cleanupPage() {
-  QWizardPage::cleanupPage();
-  this->wizard()->button(QWizard::CustomButton1)->setVisible(false);
-}
-
 bool ServerPage::isComplete() const {
   return QWizardPage::isComplete() && server_config_->model()->state() == model::Server::State::Connected;
 }
 
-bool ServerPage::validatePage() {
-  auto *connection = server_config_->model()->connection();
-  if (connection == nullptr) {
-	return false;
-  }
+model::Connection *ServerPage::connection() {
+  return server_config_->model()->connection();
+}
 
-  this->wizard()->setProperty(Wizard::CONNECTION, QVariant::fromValue(connection));
-  return true;
+bool ServerPage::validatePage() {
+  this->wizard()->button(QWizard::CustomButton1)->setVisible(false);
+  return QWizardPage::validatePage();
 }
 
 }
