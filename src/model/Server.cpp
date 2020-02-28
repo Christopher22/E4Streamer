@@ -39,6 +39,7 @@ bool Server::start() {
   }
 
   // Create the background server process
+  qDebug("Creating server...");
   background_server_ = new QProcess(this);
   background_server_->setProcessChannelMode(QProcess::MergedChannels);
 
@@ -52,6 +53,8 @@ bool Server::start() {
 	  return;
 	}
 
+	qDebug() << "Successfully connected to Empathica server. Got message: " << message;
+
 	if (message.contains("errors", Qt::CaseInsensitive)) {
 	  // Prettify Empathica error code. Example: "following errors were discovered:\r\n\r\n- invalid port number specified"
 	  const int error_msg_starts = message.lastIndexOf('-');
@@ -59,6 +62,7 @@ bool Server::start() {
 		message = message.mid(error_msg_starts + 1).trimmed();
 	  }
 
+	  qDebug() << "Empathica responded failure: " << message << ". Calling 'connectionFailed'.";
 	  emit this->connectionFailed(tr("The Empathica server has thrown an error: %1").arg(message));
 	  return;
 	}
@@ -73,17 +77,20 @@ bool Server::start() {
 					 connection_,
 					 qOverload<const QHostAddress &, quint16, QIODevice::OpenMode>(&Connection::connectToHost));
 	QObject::connect(connection_, &Connection::connected, [this] {
+	  qDebug() << "Connection established. Firing 'connected'.";
 	  state_ = State::Connected;
 	  emit this->connected(connection_);
 	});
 	QObject::connect(connection_,
 					 qOverload<QAbstractSocket::SocketError>(&Connection::error),
 					 [this](QAbstractSocket::SocketError socketError) {
+					   qDebug() << "Connection failed. Firing 'connectionFailed'.";
 					   emit this
 						 ->connectionFailed(tr("Unable to open the TCP pipeline: %1").arg(connection_->errorString()));
 					 });
 
 	// ... and start them.
+	qDebug() << "Starting worker...";
 	background_worker_ = new QThread(this);
 	QObject::connect(background_worker_, &QThread::finished, connection_, &QObject::deleteLater);
 	connection_->moveToThread(background_worker_);
@@ -91,6 +98,7 @@ bool Server::start() {
 	state_ = State::Connecting;
 	background_worker_->start();
 	emit this->connecting(QHostAddress::LocalHost, port_, QIODevice::ReadWrite);
+	qDebug() << "Worker started asynchronously.";
   });
 
   // Handle failure during start up
@@ -102,7 +110,20 @@ bool Server::start() {
 	}
   });
 
+  // Handle failure during start up
+  connect(background_server_,
+		  QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+		  [this](int exitCode, QProcess::ExitStatus exitStatus) {
+			qDebug() << "Server finished with exit code " << exitCode;
+			if (state_ == State::ServerStarting) {
+			  emit this
+				  ->connectionFailed(tr("The underlying Empathica server process ended unexpectedly with exit code %1.")
+										 .arg(exitCode));
+			}
+		  });
+
   // Start the background server
+  qDebug("Starting server...");
   state_ = State::ServerStarting;
   background_server_->start(server_path_, {api_key_, "127.0.0.1", QString::number(port_, 10)});
   return true;
