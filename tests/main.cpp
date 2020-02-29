@@ -1,5 +1,5 @@
 #include <QtTest>
 
-#include "CommandTests.h"
+#include "ConnectionTests.h"
 
-QTEST_MAIN(CommandTests)
+QTEST_MAIN(ConnectionTests)

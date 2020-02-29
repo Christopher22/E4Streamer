@@ -7,14 +7,15 @@
 
 #include <QObject>
 
-class CommandTests : public QObject {
+class ConnectionTests : public QObject {
  Q_OBJECT
 
  public:
-  CommandTests();
+  ConnectionTests();
 
  private slots:
-  void testParsing();
+  void testResponseParsing();
+  void testSampleParsing();
 };
 
 #endif //E4STREAMER_TESTS_COMMANDTESTS_H_

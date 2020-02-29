@@ -26,49 +26,53 @@ void Connection::_writeLine(const QString &line) {
 
 void Connection::_processReceivedData() {
   while (this->canReadLine()) {
-	const QString received_string = QString::fromUtf8(this->readLine());
+    const QString received_string = QString::fromUtf8(this->readLine());
 
-	if (received_string.startsWith('R')) {
-	  // Try to parse the response
-	  std::unique_ptr<Response> response = Response::parse(this, received_string);
-	  if (!response) {
-		qWarning() << "The server was unable to parse the following response:" << received_string;
-	  }
+    if (received_string.startsWith('R')) {
+      // Try to parse the response
+      std::unique_ptr<Response> response = Response::parse(this, received_string);
+      if (!response) {
+        qWarning() << "The server was unable to parse the following response:" << received_string;
+      }
 
-	  // Find the corresponding command to response and execute it.
-	  for (int i = 0, size = this->commands_.size(); i < size; ++i) {
-		commands_[i]->report(response.get());
-		if (response->is_accepted()) {
-		  commands_[i]->deleteLater();
-		  commands_.remove(i);
-		  break;
-		}
-	  }
+      // Find the corresponding command to response and execute it.
+      for (int i = 0, size = this->commands_.size(); i < size; ++i) {
+        commands_[i]->report(response.get());
+        if (response->is_accepted()) {
+          commands_[i]->deleteLater();
+          commands_.remove(i);
+          break;
+        }
+      }
 
-	  // TODO: Handle status data of devices
-	  if (!response->is_accepted()) {
-		qWarning() << "The server was unable to find a corresponding command to response " << response->command();
-	  }
-	} else {
-	  // TODO: Handle streamed data
-	  qWarning() << "The server was unable to parse the following response:" << received_string;
-	}
+      // TODO: Handle status data of devices
+      if (!response->is_accepted()) {
+        qWarning() << "The server was unable to find a corresponding command to response " << response->command();
+      }
+    } else {
+      const Sample sample = Sample::parse(received_string);
+      if (sample) {
+        emit this->sample(sample);
+      } else {
+        qWarning() << "The server was unable to parse the following data:" << received_string;
+      }
+    }
   }
 
   // Ensure that no data is left.
   if (this->bytesAvailable() > 0) {
-	qWarning() << this->bytesAvailable() << " bytes were discarded.";
+    qWarning() << this->bytesAvailable() << " bytes were discarded.";
   }
 }
 
 void Connection::disconnectFromEmpathica() {
   if (this->state() != SocketState::ConnectingState && this->state() != SocketState::ConnectedState) {
-	return;
+    return;
   }
 
   this->disconnectFromHost();
   if (!this->waitForDisconnected(1000)) {
-	qWarning() << "Unable to disconnect from socket: " << this->errorString();
+    qWarning() << "Unable to disconnect from socket: " << this->errorString();
   }
 }
 
@@ -83,30 +87,30 @@ void Connection::registerCommand(Command *command) {
 
 bool Connection::addChild(QObject *child) {
   if (child == nullptr || child->parent() != nullptr) {
-	qWarning("Child has already a parent");
-	return false;
+    qWarning("Child has already a parent");
+    return false;
   }
 
   if (child->thread() != this->thread()) {
-	if (QThread::currentThread() != child->thread()) {
-	  qWarning("The thread owning the child must call 'addChild'.");
-	  return false;
-	}
-	child->moveToThread(this->thread());
+    if (QThread::currentThread() != child->thread()) {
+      qWarning("The thread owning the child must call 'addChild'.");
+      return false;
+    }
+    child->moveToThread(this->thread());
   }
 
   return QMetaObject::invokeMethod(this, [this, child] {
-	child->setParent(this);
+    child->setParent(this);
   });
 }
 
 bool Connection::removeChild(QObject *child) {
   if (child == nullptr || child->thread() != this->thread()) {
-	return false;
+    return false;
   }
 
   return QMetaObject::invokeMethod(this, [child] {
-	child->deleteLater();
+    child->deleteLater();
   });
 }
 

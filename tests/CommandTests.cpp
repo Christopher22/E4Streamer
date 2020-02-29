@@ -2,19 +2,20 @@
 // Created by christopher on 28.02.2020.
 //
 
-#include "CommandTests.h"
+#include "ConnectionTests.h"
 #include "../src/model/Response.h"
+#include "../src/model/Sample.h"
 #include "../src/model/commands/DiscoverDevices.h"
 
 #include <QtTest>
 
-CommandTests::CommandTests() : QObject(nullptr) {
+ConnectionTests::ConnectionTests() : QObject(nullptr) {
 
 }
 
-void CommandTests::testParsing() {
+void ConnectionTests::testResponseParsing() {
   auto response = e4streamer::model::Response::parse(nullptr,
-													 "R device_discover_list 2 | 9ff167 Empatica_E4 available | 740163 Empatica_E4 available");
+                                                     "R device_discover_list 2 | 9ff167 Empatica_E4 available | 740163 Empatica_E4 available");
 
   QCOMPARE(response->size(), 9);
   QCOMPARE(response->command(), QString("device_discover_list"));
@@ -24,4 +25,11 @@ void CommandTests::testParsing() {
   auto *command = new e4streamer::model::commands::DiscoverDevices(nullptr);
   QVERIFY(command->isSuitable(response.get()));
   command->deleteLater();
+}
+
+void ConnectionTests::testSampleParsing() {
+  auto sample = e4streamer::model::Sample::parse("ibi 123.456 9.87");
+  QCOMPARE(sample.type(), e4streamer::model::Sample::Type::Heartbeat);
+  QCOMPARE(sample.timestamp(), 123.456f);
+  QCOMPARE(sample.data(), 9.87f);
 }
