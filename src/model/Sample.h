@@ -6,12 +6,13 @@
 #define E4STREAMER_SRC_MODEL_SAMPLE_H_
 
 #include <QString>
+#include <QVector>
 
 #include <string_view>
 
 namespace e4streamer::model {
 
-class Sample {
+class Sample : public QVector<float> {
  public:
   enum class Type {
     Acceleration,
@@ -33,12 +34,8 @@ class Sample {
     return type_;
   }
 
-  [[nodiscard]] inline float timestamp() const {
+  [[nodiscard]] inline double timestamp() const {
     return timestamp_;
-  }
-
-  [[nodiscard]] inline float data() const {
-    return data_;
   }
 
   [[nodiscard]] constexpr static const char *id(Type type) {
@@ -54,6 +51,19 @@ class Sample {
     }
   }
 
+  [[nodiscard]] constexpr static int numChannels(Type type) {
+    switch (type) {
+      case Type::Acceleration: return 3;
+      case Type::BloodVolumePulse:
+      case Type::GalvanicSkinResponse:
+      case Type::SkinTemperature:
+      case Type::Heartbeat:
+      case Type::Battery: return 1;
+      case Type::Tags:
+      case Type::SampleError: return 0;
+    }
+  }
+
   [[nodiscard]] constexpr static Type type(const char *id) {
     for (auto type: {Type::Acceleration, Type::BloodVolumePulse, Type::GalvanicSkinResponse, Type::SkinTemperature,
                      Type::Heartbeat, Type::Battery, Type::Tags}) {
@@ -65,12 +75,13 @@ class Sample {
   }
 
  protected:
-  constexpr Sample() noexcept: type_(Type::SampleError), timestamp_(0.0f), data_(0.0f) {}
-  constexpr Sample(Type type, float timestamp, float data) noexcept : type_(type), timestamp_(timestamp), data_(data) {}
+  inline Sample() noexcept: QVector<float>(), type_(Type::SampleError), timestamp_(0.0f) {}
+  inline Sample(Type type, double timestamp) noexcept
+      : QVector<float>(Sample::numChannels(type)), type_(type), timestamp_(timestamp) {}
 
  private:
-  const Type type_;
-  const float timestamp_, data_;
+  Type type_;
+  double timestamp_;
 };
 }
 

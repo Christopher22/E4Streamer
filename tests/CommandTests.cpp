@@ -28,8 +28,11 @@ void ConnectionTests::testResponseParsing() {
 }
 
 void ConnectionTests::testSampleParsing() {
-  auto sample = e4streamer::model::Sample::parse("ibi 123.456 9.87");
-  QCOMPARE(sample.type(), e4streamer::model::Sample::Type::Heartbeat);
-  QCOMPARE(sample.timestamp(), 123.456f);
-  QCOMPARE(sample.data(), 9.87f);
+  auto sample = e4streamer::model::Sample::parse("acc 123.456 1.9 2 3");
+  QCOMPARE(sample.type(), e4streamer::model::Sample::Type::Acceleration);
+  QCOMPARE(sample.timestamp(), 123.456);
+  QCOMPARE(sample.size(), 3);
+  QCOMPARE(sample[0], 1.9f);
+  QCOMPARE(sample[1], 2.0f);
+  QCOMPARE(sample[2], 3.0f);
 }
