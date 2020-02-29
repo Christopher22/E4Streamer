@@ -17,7 +17,7 @@ Sample Sample::parse(const QString &raw_sample) {
 
   bool float_ok;
   Sample sample(
-      Sample::type(parts[0].toLatin1()),
+      Sample::responseType(parts[0].toLatin1()),
       parts[1].toDouble(&float_ok)
   );
 

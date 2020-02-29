@@ -47,7 +47,33 @@ class Sample : public QVector<float> {
       case Type::Heartbeat: return "ibi";
       case Type::Battery: return "bat";
       case Type::Tags: return "tag";
-      case Type::SampleError: return "";
+      default: return "";
+    }
+  }
+
+  [[nodiscard]] constexpr static const char *responseId(Type type) {
+    switch (type) {
+      case Type::Acceleration: return "E4_Acc";
+      case Type::BloodVolumePulse: return "E4_Bvp";
+      case Type::GalvanicSkinResponse: return "E4_Gsr";
+      case Type::SkinTemperature: return "E4_Temp";
+      case Type::Heartbeat: return "E4_Hr";
+      case Type::Battery: return "E4_Battery";
+      case Type::Tags: return "E4_Tag";
+      default: return "";
+    }
+  }
+
+  [[nodiscard]] constexpr static const char *description(Type type) {
+    switch (type) {
+      case Type::Acceleration: return "3-axis acceleration";
+      case Type::BloodVolumePulse: return "Blood Volume Pulse";
+      case Type::GalvanicSkinResponse: return "Galvanic Skin Response";
+      case Type::SkinTemperature: return "Skin Temperature";
+      case Type::Heartbeat: return "Interbeat Interval and Heartbeat";
+      case Type::Battery: return "Device Battery";
+      case Type::Tags: return "Tags taken from the device";
+      default: return "";
     }
   }
 
@@ -62,6 +88,16 @@ class Sample : public QVector<float> {
       case Type::Tags:
       case Type::SampleError: return 0;
     }
+  }
+
+  [[nodiscard]] constexpr static Type responseType(const char *id) {
+    for (auto type: {Type::Acceleration, Type::BloodVolumePulse, Type::GalvanicSkinResponse, Type::SkinTemperature,
+                     Type::Heartbeat, Type::Battery, Type::Tags}) {
+      if (std::string_view(Sample::responseId(type)) == id) {
+        return type;
+      }
+    }
+    return Type::SampleError;
   }
 
   [[nodiscard]] constexpr static Type type(const char *id) {

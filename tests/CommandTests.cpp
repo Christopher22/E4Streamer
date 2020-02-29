@@ -28,7 +28,7 @@ void ConnectionTests::testResponseParsing() {
 }
 
 void ConnectionTests::testSampleParsing() {
-  auto sample = e4streamer::model::Sample::parse("acc 123.456 1.9 2 3");
+  auto sample = e4streamer::model::Sample::parse("E4_Acc 123.456 1.9 2 3");
   QCOMPARE(sample.type(), e4streamer::model::Sample::Type::Acceleration);
   QCOMPARE(sample.timestamp(), 123.456);
   QCOMPARE(sample.size(), 3);
