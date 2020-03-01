@@ -9,6 +9,7 @@
 #include <QVector>
 
 #include <string_view>
+#include <array>
 
 namespace e4streamer::model {
 
@@ -24,6 +25,10 @@ class Sample : public QVector<float> {
     Tags,
     SampleError
   };
+
+  constexpr static std::array<Sample::Type, 7>
+      AVAILABLE_TYPES = {Type::Acceleration, Type::BloodVolumePulse, Type::GalvanicSkinResponse, Type::SkinTemperature,
+                         Type::Heartbeat, Type::Battery, Type::Tags};
 
   static Sample parse(const QString &sample);
   inline explicit operator bool() const noexcept {
@@ -91,8 +96,7 @@ class Sample : public QVector<float> {
   }
 
   [[nodiscard]] constexpr static Type responseType(const char *id) {
-    for (auto type: {Type::Acceleration, Type::BloodVolumePulse, Type::GalvanicSkinResponse, Type::SkinTemperature,
-                     Type::Heartbeat, Type::Battery, Type::Tags}) {
+    for (auto type: AVAILABLE_TYPES) {
       if (std::string_view(Sample::responseId(type)) == id) {
         return type;
       }
