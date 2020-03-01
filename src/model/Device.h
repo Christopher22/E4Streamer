@@ -18,13 +18,16 @@ class Device : public QObject {
  public:
   enum class State {
     NotConnected,
+    Registering,
     Connecting,
     Connected,
-    Disconnecting
+    Disconnecting,
+    Unregistering
   };
 
   Device(QString id, QString name, bool is_allowed, Connection *connection = nullptr);
   ~Device() override;
+  bool event(QEvent *event) override;
   [[nodiscard]] QString ToString() const;
 
   bool connectDevice();
@@ -43,14 +46,30 @@ class Device : public QObject {
   }
 
  signals:
+  void connectionSet(Connection *connection);
   void connected(Device *device);
   void disconnected(Device *device);
   void connectionFailed(const QString &error);
   void disconnectionFailed(const QString &error);
 
  private:
+  Connection *connection();
   void _onSuccess();
   void _onFailure(const QString &failure);
+
+  template<typename T>
+  bool _sendCommand(State next_state) {
+    auto *connection = this->connection();
+    if (connection == nullptr) {
+      return false;
+    }
+
+    state_ = next_state;
+    auto connect = connection->send<T>(this, nullptr);
+    QObject::connect(connect.command(), &T::success, this, &Device::_onSuccess);
+    QObject::connect(connect.command(), &T::failure, this, &Device::_onFailure);
+    return true;
+  }
 
   const QString id_, name_;
   const bool is_allowed_;

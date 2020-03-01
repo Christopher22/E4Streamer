@@ -7,6 +7,6 @@
 
 namespace e4streamer::model::commands {
 
-Connect::Connect(Device *device, QObject *parent) : Command("device_connect_btle", {device->id()}, parent) {}
+Connect::Connect(Device *device, QObject *parent) : Command("device_connect", {device->id()}, parent) {}
 
 }

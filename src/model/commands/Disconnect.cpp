@@ -7,6 +7,6 @@
 
 namespace e4streamer::model::commands {
 
-Disconnect::Disconnect(Device *device, QObject *parent) : Command("device_disconnect_btle", {device->id()}, parent) {}
+Disconnect::Disconnect(Device *device, QObject *parent) : Command("device_disconnect", {device->id()}, parent) {}
 
 }
