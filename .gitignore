@@ -639,3 +639,4 @@ MigrationBackup/
 # End of https://www.gitignore.io/api/qt,c++,linux,macos,cmake,clion,windows,qtcreator,visualstudio,visualstudiocode
 
 .idea/
+extern/liblsl/*

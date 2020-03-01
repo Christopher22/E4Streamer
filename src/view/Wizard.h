@@ -16,6 +16,7 @@ class Device;
 namespace view {
 class ServerPage;
 class DevicePage;
+class RecordingPage;
 
 class Wizard : public QWizard {
  Q_OBJECT
@@ -23,11 +24,11 @@ class Wizard : public QWizard {
  public:
   explicit Wizard(QWidget *widget = nullptr);
   model::Connection *connection();
-  model::Device *device();
 
  private:
   ServerPage *server_page_;
   DevicePage *device_page_;
+  RecordingPage *recording_page_;
 };
 }
 }
