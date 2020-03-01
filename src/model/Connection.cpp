@@ -22,6 +22,7 @@ Connection::~Connection() {
 void Connection::_writeLine(const QString &line) {
   this->write(line.toUtf8());
   this->write("\r\n");
+  qDebug() << "Wrote" << line << "to server.";
 }
 
 void Connection::_processReceivedData() {
@@ -29,6 +30,8 @@ void Connection::_processReceivedData() {
     const QString received_string = QString::fromUtf8(this->readLine());
 
     if (received_string.startsWith('R')) {
+      qDebug() << "Received response: " << received_string;
+
       // Try to parse the response
       std::unique_ptr<Response> response = Response::parse(this, received_string);
       if (!response) {
@@ -70,9 +73,13 @@ void Connection::disconnectFromEmpathica() {
     return;
   }
 
+  qDebug("Disconnecting from Empathica...");
+  emit this->disconnecting();
   this->disconnectFromHost();
   if (!this->waitForDisconnected(1000)) {
     qWarning() << "Unable to disconnect from socket: " << this->errorString();
+  } else {
+    qDebug("Disconnected from Empathica.");
   }
 }
 

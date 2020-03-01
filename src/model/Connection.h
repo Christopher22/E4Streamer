@@ -64,6 +64,7 @@ class Connection : public QTcpSocket {
   }
 
  signals:
+  void disconnecting();
   void sample(const Sample &sample);
 
  private:
