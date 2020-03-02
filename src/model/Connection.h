@@ -19,33 +19,33 @@ class Connection : public QTcpSocket {
   template<typename T>
   class QueuedCommand {
    public:
-    inline QueuedCommand(T *command, Connection *connection) : command_(command), connection_(connection) {
-      static_assert(std::is_base_of<Command, T>::value, "Type T is not a command");
-    }
+	inline QueuedCommand(T *command, Connection *connection) : command_(command), connection_(connection) {
+	  static_assert(std::is_base_of<Command, T>::value, "Type T is not a command");
+	}
 
-    ~QueuedCommand() {
-      // Transfer the command to the other thread
-      command_->moveToThread(connection_->thread());
-      const bool
-          result =
-          QMetaObject::invokeMethod(connection_, "registerCommand", Qt::QueuedConnection, Q_ARG(Command*, command_));
-      Q_ASSERT(result);
-    }
+	~QueuedCommand() {
+	  // Transfer the command to the other thread
+	  command_->moveToThread(connection_->thread());
+	  const bool
+		  result =
+		  QMetaObject::invokeMethod(connection_, "registerCommand", Qt::QueuedConnection, Q_ARG(Command*, command_));
+	  Q_ASSERT(result);
+	}
 
-    QueuedCommand(const QueuedCommand &) = delete;
-    QueuedCommand &operator=(QueuedCommand const &) = delete;
+	QueuedCommand(const QueuedCommand &) = delete;
+	QueuedCommand &operator=(QueuedCommand const &) = delete;
 
-    inline T *command() noexcept {
-      return command_;
-    }
+	inline T *command() noexcept {
+	  return command_;
+	}
 
-    inline explicit operator T *() noexcept {
-      return command_;
-    }
+	inline explicit operator T *() noexcept {
+	  return command_;
+	}
 
    private:
-    T *command_;
-    Connection *connection_;
+	T *command_;
+	Connection *connection_;
   };
 
   explicit Connection(QObject *parent = nullptr);
@@ -59,9 +59,9 @@ class Connection : public QTcpSocket {
 
   template<typename T, typename... Args>
   QueuedCommand<T> send(Args &&... args) {
-    // This is called from an external thread
-    auto *command = new T(std::forward<Args>(args)...);
-    return QueuedCommand(command, this);
+	// This is called from an external thread
+	auto *command = new T(std::forward<Args>(args)...);
+	return QueuedCommand(command, this);
   }
 
  signals:
@@ -72,12 +72,20 @@ class Connection : public QTcpSocket {
   void childEvent(QChildEvent *event) override;
 
  private:
+  enum class ShutdownState {
+	NoShutdown,
+	WaitingForChildren,
+	Killing
+  };
+
   bool _clear();
   void _writeLine(const QString &line);
   void _processReceivedData();
+  void _handleResponse(const QString &response);
 
+  QByteArray buffer_;
   QVector<Command *> commands_;
-  bool is_shutting_down_;
+  ShutdownState shutdown_state_;
 };
 }
 

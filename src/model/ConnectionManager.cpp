@@ -16,8 +16,8 @@ void ConnectionManager::run() {
   qDebug() << "Creating connection...";
   connection_ = new Connection(nullptr);
   QObject::connect(connection_, &QObject::destroyed, [this] {
-    connection_ = nullptr;
-    this->quit();
+	connection_ = nullptr;
+	this->quit();
   });
 
   emit this->connectionCreated(connection_);
@@ -27,24 +27,24 @@ void ConnectionManager::run() {
 
   qDebug() << "Message queue of manager ended.";
   if (connection_ != nullptr) {
-    qWarning() << "Connection did not deleted itself. Manager will handle that.";
-    connection_->deleteLater();
+	qWarning() << "Connection did not deleted itself. Manager will handle that.";
+	connection_->deleteLater();
   }
 }
 
 void ConnectionManager::shutdown(unsigned long timeout) {
   if (connection_ != nullptr) {
-    Q_ASSERT(QThread::currentThread() != connection_->thread());
-    QMetaObject::invokeMethod(this, [&] {
-      connection_->disconnectFromEmpathica();
-    });
+	Q_ASSERT(QThread::currentThread() != connection_->thread());
+	QMetaObject::invokeMethod(connection_, [&] {
+	  connection_->disconnectFromEmpathica();
+	});
 
-    if (!this->wait(timeout)) {
-      qDebug() << "Still pending children. Killing them and the connection now.";
-      QMetaObject::invokeMethod(this, [&] {
-        connection_->kill();
-      });
-    }
+	if (!this->wait(timeout)) {
+	  qDebug() << "Still pending children. Killing them and the connection now.";
+	  QMetaObject::invokeMethod(connection_, [&] {
+		connection_->kill();
+	  });
+	}
   }
 }
 
