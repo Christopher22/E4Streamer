@@ -10,7 +10,7 @@
 namespace e4streamer::model {
 
 Command::Command(QString command, QStringList arguments, QObject *parent)
-	: QObject(parent), command_(std::move(command)), arguments_(std::move(arguments)) {
+    : Disconnectable(parent), command_(std::move(command)), arguments_(std::move(arguments)) {
 
 }
 
@@ -24,22 +24,26 @@ bool Command::isSuitable(Response *response) const {
 
 bool Command::report(Response *response) {
   if (response == nullptr || !this->isSuitable(response)) {
-	return false;
+    return false;
   }
 
   if (!response->isEmpty() && (*response)[0].compare("ERR", Qt::CaseInsensitive) == 0) {
-	response->accept();
-	response->pop_front();
-	emit this->failure(response->join(' '));
+    response->accept();
+    response->pop_front();
+    emit this->failure(response->join(' '));
   } else if (!response->isEmpty() && (*response)[0].compare("OK", Qt::CaseInsensitive) == 0) {
-	response->accept();
-	emit this->success();
+    response->accept();
+    emit this->success();
   } else {
-	this->handleResponse(response);
+    this->handleResponse(response);
   }
 
   return response->is_accepted();
 }
 
 void Command::handleResponse(Response *) {}
+
+void Command::handleDisconnect() {
+  // The connection will delete this object once the answer is there.
+}
 }

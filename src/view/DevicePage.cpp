@@ -15,15 +15,15 @@ namespace e4streamer::view {
 
 DevicePage::DevicePage(QWidget *parent) : QWizardPage(parent), devices_(new widgets::Devices(this)) {
   this->setSubTitle(tr(
-	  "Please select a device by double-clicking on its entry. Use %1 to update the devices.")
-						.arg(QKeySequence(QKeySequence::Refresh).toString(QKeySequence::NativeText)));
+      "Please select a device by double-clicking on its entry. Use %1 to update the devices.")
+                        .arg(QKeySequence(QKeySequence::Refresh).toString(QKeySequence::NativeText)));
   this->setCommitPage(true);
   auto layout = new QVBoxLayout(this);
   layout->addWidget(devices_);
   this->setLayout(layout);
 
   QObject::connect(devices_, &widgets::Devices::deviceSelected, [this](model::Device *device) {
-	emit this->completeChanged();
+    emit this->completeChanged();
   });
 }
 
@@ -32,7 +32,7 @@ void DevicePage::initializePage() {
 
   auto *wizard = qobject_cast<Wizard *>(this->wizard());
   if (wizard == nullptr || wizard->connection() == nullptr || !this->devices_->setConnection(wizard->connection())) {
-	qWarning("Unable to acquire connection!");
+    qWarning("Unable to acquire connection!");
   }
 
   devices_->updateDevices();

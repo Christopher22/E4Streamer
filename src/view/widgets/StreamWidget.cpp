@@ -11,7 +11,7 @@ namespace e4streamer::view::widgets {
 
 StreamWidget::StreamWidget(model::Sample::Type type, QWidget *parent) :
     QCheckBox(model::Sample::description(type), parent),
-    stream_(new model::Stream(type, nullptr, this)),
+    stream_(new model::Stream(type, nullptr, nullptr)),
     ignore_next_state_change_(false) {
   this->setEnabled(false);
 
@@ -51,5 +51,4 @@ void StreamWidget::_onFailure(const QString &error) {
   this->setChecked(!this->isChecked());
   this->setEnabled(true);
 }
-
 }

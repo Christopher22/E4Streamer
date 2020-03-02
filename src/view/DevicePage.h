@@ -18,7 +18,6 @@ class DevicePage : public QWizardPage {
   void initializePage() override;
   bool validatePage() override;
   [[nodiscard]] bool isComplete() const override;
-
  private:
   widgets::Devices *devices_;
 };

@@ -31,5 +31,6 @@ void RecordingPage::initializePage() {
     }
   }
 }
+
 }
 

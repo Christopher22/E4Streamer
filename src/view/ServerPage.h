@@ -24,6 +24,7 @@ class ServerPage : public QWizardPage {
   bool validatePage() override;
   [[nodiscard]] bool isComplete() const override;
   model::Connection *connection();
+
  private:
   widgets::ServerConfig *server_config_;
 };

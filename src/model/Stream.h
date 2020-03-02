@@ -6,14 +6,14 @@
 #define E4STREAMER_SRC_MODEL_STREAM_H_
 
 #include "Sample.h"
+#include "Disconnectable.h"
 
-#include <QObject>
 #include <lsl_cpp.h>
 
 namespace e4streamer::model {
 class Connection;
 
-class Stream : public QObject {
+class Stream : public Disconnectable {
  Q_OBJECT
 
  public:
@@ -24,12 +24,13 @@ class Stream : public QObject {
     Unsubscribing
   };
 
-  explicit Stream(Sample::Type type, Connection *connection = nullptr, QObject *parent = nullptr);
+  explicit Stream(Sample::Type type, Connection *connection = nullptr, Connection *parent = nullptr);
   ~Stream() override;
 
   bool setConnection(Connection *connection);
   bool subscribe();
   bool unsubscribe();
+  void handleDisconnect() override;
   [[nodiscard]] inline State state() const noexcept {
     return state_;
   }
@@ -45,12 +46,11 @@ class Stream : public QObject {
   void _onCommandSuccess();
   void _onCommandFailure(const QString &error);
   void _onSampleArriving(const Sample &sample);
-  void _onConnectionDisconnect();
 
-  Connection *connection_;
   State state_;
   Sample::Type type_;
   lsl::stream_outlet stream_;
+  bool is_shutting_down_;
 };
 }
 

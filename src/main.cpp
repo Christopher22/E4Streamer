@@ -1,5 +1,5 @@
 #include <QApplication>
-
+#include <QPointer>
 #include "view/Wizard.h"
 
 int main(int argc, char **argv) {
@@ -8,8 +8,11 @@ int main(int argc, char **argv) {
   QApplication::setOrganizationName("Christopher Gundler");
   QApplication::setApplicationVersion("0.1");
 
-  auto *server_config = new e4streamer::view::Wizard();
-  server_config->show();
-
+  auto *wizard = new e4streamer::view::Wizard();
+  QObject::connect(wizard, &e4streamer::view::Wizard::finished, [&] {
+    qDebug("Recording done. Deleting wizard...");
+    wizard->deleteLater();
+  });
+  wizard->show();
   return QApplication::exec();
 }

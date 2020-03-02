@@ -51,9 +51,10 @@ class Connection : public QTcpSocket {
   explicit Connection(QObject *parent = nullptr);
   ~Connection() override;
   void disconnectFromEmpathica();
+  void kill();
 
-  bool addChild(QObject *child);
-  bool removeChild(QObject *child);
+  bool addChild(Disconnectable *child);
+  bool removeChild(Disconnectable *child);
   Q_INVOKABLE void registerCommand(Command *command);
 
   template<typename T, typename... Args>
@@ -67,11 +68,16 @@ class Connection : public QTcpSocket {
   void disconnecting();
   void sample(const Sample &sample);
 
+ protected:
+  void childEvent(QChildEvent *event) override;
+
  private:
+  bool _clear();
   void _writeLine(const QString &line);
   void _processReceivedData();
 
   QVector<Command *> commands_;
+  bool is_shutting_down_;
 };
 }
 

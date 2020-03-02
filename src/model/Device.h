@@ -5,14 +5,13 @@
 #ifndef E4STREAMER_SRC_MODEL_DEVICE_H_
 #define E4STREAMER_SRC_MODEL_DEVICE_H_
 
+#include "Disconnectable.h"
 #include "Command.h"
-
-#include <QObject>
 
 namespace e4streamer::model {
 class Connection;
 
-class Device : public QObject {
+class Device : public Disconnectable {
  Q_OBJECT
 
  public:
@@ -27,11 +26,10 @@ class Device : public QObject {
 
   Device(QString id, QString name, bool is_allowed, Connection *connection = nullptr);
   ~Device() override;
-  bool event(QEvent *event) override;
   [[nodiscard]] QString ToString() const;
-
   bool connectDevice();
   bool disconnectDevice();
+  void handleDisconnect() override;
 
   [[nodiscard]] inline bool isConnectable() const {
     return is_allowed_;
@@ -46,7 +44,6 @@ class Device : public QObject {
   }
 
  signals:
-  void connectionSet(Connection *connection);
   void connected(Device *device);
   void disconnected(Device *device);
   void connectionFailed(const QString &error);
@@ -74,6 +71,7 @@ class Device : public QObject {
   const QString id_, name_;
   const bool is_allowed_;
   State state_;
+  bool is_shutting_down_;
 };
 }
 

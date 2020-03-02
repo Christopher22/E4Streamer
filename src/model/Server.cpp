@@ -4,12 +4,11 @@
 
 #include "Server.h"
 #include "Connection.h"
+#include "ConnectionManager.h"
 
 #include <QProcess>
-#include <QThread>
 #include <QHostAddress>
 #include <QFile>
-#include <QDebug>
 
 namespace e4streamer::model {
 
@@ -67,38 +66,16 @@ bool Server::start() {
       return;
     }
 
-    // ... otherwise create the background worker and the corresponding connection ...
-    qRegisterMetaType<QHostAddress>("QHostAddress");
-    qRegisterMetaType<QIODevice::OpenMode>("QIODevice::OpenMode");
-
-    connection_ = new Connection(nullptr);
-    QObject::connect(this,
-                     &Server::connecting,
-                     connection_,
-                     qOverload<const QHostAddress &, quint16, QIODevice::OpenMode>(&Connection::connectToHost));
-    QObject::connect(connection_, &Connection::connected, [this] {
-      qDebug() << "Connection established. Firing 'connected'.";
-      state_ = State::Connected;
-      emit this->connected(connection_);
-    });
-    QObject::connect(connection_,
-                     qOverload<QAbstractSocket::SocketError>(&Connection::error),
-                     [this](QAbstractSocket::SocketError socketError) {
-                       qDebug() << "Connection failed. Firing 'connectionFailed'.";
-                       emit this
-                         ->connectionFailed(tr("Unable to open the TCP pipeline: %1").arg(connection_->errorString()));
-                     });
-
-    // ... and start them.
+    // ... otherwise create the background worker and start it.
     qDebug() << "Starting worker...";
-    background_worker_ = new QThread(this);
-    QObject::connect(background_worker_, &QThread::finished, connection_, &QObject::deleteLater);
-    QObject::connect(connection_, &Connection::disconnecting, this, &Server::_cleanUp);
-    connection_->moveToThread(background_worker_);
-
     state_ = State::Connecting;
+    background_worker_ = new ConnectionManager(this);
+    QObject::connect(background_worker_, &ConnectionManager::connectionCreated, this, &Server::_connectToConnection);
+    QObject::connect(background_worker_,
+                     &ConnectionManager::finished,
+                     background_worker_,
+                     &ConnectionManager::deleteLater);
     background_worker_->start();
-    emit this->connecting(QHostAddress::LocalHost, port_, QIODevice::ReadWrite);
     qDebug() << "Worker started asynchronously.";
   });
 
@@ -137,27 +114,30 @@ void Server::_cleanUp() {
   }
 
   qDebug("Cleaning up the server...");
-
   state_ = State::NotConnected;
 
   // The background worker takes care of the delete
   connection_ = nullptr;
 
   if (background_worker_ != nullptr) {
-    background_worker_->quit();
-    if (!background_worker_->wait(1000)) {
-      qWarning("Unable to wait for the background worker!");
-    }
-    background_worker_->deleteLater();
+    qDebug("Shutting down the background worker...");
+    background_worker_->shutdown(3000);
+    // Once finished, the thread will call "finished" and delete itself.
     background_worker_ = nullptr;
+    qDebug("Background worker deleted.");
   }
 
   if (background_server_ != nullptr) {
+    qDebug("Shutting down the background server...");
     if (background_server_->state() != QProcess::NotRunning) {
-      background_server_->kill();
+      background_server_->terminate();
+      if (!background_server_->waitForFinished(2000)) {
+        background_server_->kill();
+      }
     }
     background_server_->deleteLater();
     background_server_ = nullptr;
+    qDebug("Background server deleted.");
   }
 
   qDebug("Server cleaned.");
@@ -183,6 +163,39 @@ bool Server::setPort(quint16 port) {
   return this->_set_value(port, [this](const quint16 &port) {
     port_ = port;
   });
+}
+
+void Server::_connectToConnection(Connection *connection) {
+  connection_ = connection;
+
+  qRegisterMetaType<QHostAddress>("QHostAddress");
+  qRegisterMetaType<QIODevice::OpenMode>("QIODevice::OpenMode");
+  qRegisterMetaType<QAbstractSocket::SocketError>("QAbstractSocket::SocketError");
+
+  QObject::connect(this,
+                   &Server::connecting,
+                   connection_,
+                   qOverload<const QHostAddress &, quint16, QIODevice::OpenMode>(&Connection::connectToHost));
+
+  QObject::connect(connection_, &Connection::connected, this, [this] {
+    qDebug() << "Connection established. Firing 'connected'.";
+    state_ = State::Connected;
+    emit this->connected(connection_);
+  });
+
+  QObject::connect(connection_,
+                   qOverload<QAbstractSocket::SocketError>(&Connection::error),
+                   this,
+                   [this](QAbstractSocket::SocketError socketError) {
+                     qDebug() << "Connection failed. Firing 'connectionFailed':" << connection_->errorString();
+                     emit this
+                       ->connectionFailed(tr("Unable to open the TCP pipeline: %1").arg(connection_->errorString()));
+                   });
+
+  QObject::connect(connection_, &Connection::disconnecting, this, &Server::_cleanUp);
+
+  // Connect
+  emit this->connecting(QHostAddress::LocalHost, port_, QIODevice::ReadWrite);
 }
 
 }

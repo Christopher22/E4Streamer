@@ -8,41 +8,58 @@
 
 namespace e4streamer::model {
 
-Stream::Stream(Sample::Type type, Connection *connection, QObject *parent)
-    : QObject(parent),
-      connection_(nullptr),
+Stream::Stream(Sample::Type type, Connection *connection, Connection *parent)
+    : Disconnectable(parent),
       state_(State::Unconnected),
       type_(type),
-      stream_(Stream::_generateStreamInfo(type)) {
+      stream_(Stream::_generateStreamInfo(type)),
+      is_shutting_down_(false) {
   this->setConnection(connection);
 }
 
 Stream::~Stream() {
-  this->unsubscribe();
+  if (!is_shutting_down_) {
+    is_shutting_down_ = true;
+    this->unsubscribe();
+  }
 }
 
 bool Stream::subscribe() {
-  if (state_ != State::Unconnected || connection_ == nullptr) {
+  auto *connection = qobject_cast<Connection *>(this->parent());
+  if (state_ != State::Unconnected || connection == nullptr) {
     return false;
   }
 
   state_ = State::Subscribing;
-  auto command = connection_->send<commands::Subscription>(type_, true, nullptr);
+  auto command = connection->send<commands::Subscription>(type_, true, nullptr);
   QObject::connect(command.command(), &commands::Subscription::success, this, &Stream::_onCommandSuccess);
   QObject::connect(command.command(), &commands::Subscription::failure, this, &Stream::_onCommandFailure);
   return true;
 }
 
 bool Stream::unsubscribe() {
-  if (state_ != State::Subscribed || connection_ == nullptr) {
+  auto *connection = qobject_cast<Connection *>(this->parent());
+  if (state_ != State::Subscribed || connection == nullptr) {
     return false;
   }
 
   state_ = State::Unsubscribing;
-  auto command = connection_->send<commands::Subscription>(type_, false, nullptr);
+  auto command = connection->send<commands::Subscription>(type_, false, nullptr);
   QObject::connect(command.command(), &commands::Subscription::success, this, &Stream::_onCommandSuccess);
   QObject::connect(command.command(), &commands::Subscription::failure, this, &Stream::_onCommandFailure);
   return true;
+}
+
+void Stream::handleDisconnect() {
+  if (is_shutting_down_) {
+    return;
+  }
+
+  is_shutting_down_ = true;
+  if (!this->unsubscribe()) {
+    this->deleteLater();
+    return;
+  }
 }
 
 void Stream::_onSampleArriving(const Sample &sample) {
@@ -54,12 +71,6 @@ void Stream::_onSampleArriving(const Sample &sample) {
   stream_.push_sample(sample.data(), sample.timestamp());
 }
 
-void Stream::_onConnectionDisconnect() {
-  // It is to late to unsubscribe
-  connection_ = nullptr;
-  state_ = State::Unconnected;
-}
-
 void Stream::_onCommandSuccess() {
   if (state_ == State::Subscribing) {
     state_ = State::Subscribed;
@@ -67,10 +78,22 @@ void Stream::_onCommandSuccess() {
   } else if (state_ == State::Unsubscribing) {
     state_ = State::Unconnected;
     emit this->unsubscribed();
+
+    // Successfully shut down
+    if (is_shutting_down_) {
+      this->deleteLater();
+    }
   }
 }
 
 void Stream::_onCommandFailure(const QString &error) {
+  // We can do nothing - do not throw error.
+  if (is_shutting_down_) {
+    state_ = State::Unconnected;
+    this->deleteLater();
+    return;
+  }
+
   if (state_ == State::Subscribing) {
     state_ = State::Unconnected;
     emit this->subscriptionFailed(error);
@@ -89,14 +112,12 @@ lsl::stream_info Stream::_generateStreamInfo(Sample::Type sample_type) {
 }
 
 bool Stream::setConnection(Connection *connection) {
-  if (connection_ != nullptr || connection == nullptr) {
+  if (connection == nullptr || connection == this->parent()) {
     return false;
   }
 
-  connection_ = connection;
-  QObject::connect(connection_, &Connection::disconnected, this, &Stream::_onConnectionDisconnect);
-  QObject::connect(connection_, &Connection::destroyed, this, &Stream::_onConnectionDisconnect);
-  QObject::connect(connection_, &Connection::sample, this, &Stream::_onSampleArriving);
+  connection->addChild(this);
+  QObject::connect(connection, &Connection::sample, this, &Stream::_onSampleArriving);
   return true;
 }
 

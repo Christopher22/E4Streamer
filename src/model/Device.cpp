@@ -13,55 +13,50 @@
 namespace e4streamer::model {
 
 Device::Device(QString id, QString name, bool is_allowed, Connection *connection)
-    : QObject(connection),
+    : Disconnectable(connection),
       id_(std::move(id)),
       name_(std::move(name)),
       is_allowed_(is_allowed),
-      state_(State::NotConnected) {
-
-  QObject::connect(this, &Device::connectionSet, [this](Connection *connection) {
-    qDebug("Setting auto device-disconnect for device");
-    QObject::disconnect(nullptr, &Connection::disconnecting, this, &Device::disconnectDevice);
-    if (connection != nullptr) {
-      QObject::connect(connection, &Connection::disconnecting, this, &Device::disconnectDevice);
-    }
-  });
-
-  if (connection != nullptr) {
-    emit this->connectionSet(connection);
-  }
+      state_(State::NotConnected),
+      is_shutting_down_(false) {
 }
 
 Device::~Device() {
-  this->disconnectDevice();
+  if (state_ != State::NotConnected) {
+    qWarning() << "Device" << id_ << "was not properly disconnected!";
+  }
 }
 
 bool Device::connectDevice() {
-  auto *connection = qobject_cast<Connection *>(this->parent());
-  if (connection == nullptr || state_ != State::NotConnected) {
+  if (state_ != State::NotConnected || is_shutting_down_) {
     return false;
   }
 
   qDebug() << "Registering device" << id_;
-  state_ = State::Registering;
-  auto command = connection->send<commands::Register>(this);
-  QObject::connect(command.command(), &commands::Register::success, this, &Device::_onSuccess);
-  QObject::connect(command.command(), &commands::Register::failure, this, &Device::_onFailure);
-  return true;
+  return this->_sendCommand<commands::Register>(State::Registering);
 }
 
 bool Device::disconnectDevice() {
-  auto *connection = qobject_cast<Connection *>(this->parent());
-  if (connection == nullptr || state_ != State::Connected) {
+  if (state_ != State::Connected) {
     return false;
   }
 
   qDebug() << "Disconnecting device" << id_;
-  state_ = State::Disconnecting;
-  auto disconnect = connection->send<commands::Disconnect>(this, nullptr);
-  QObject::connect(disconnect.command(), &commands::Disconnect::success, this, &Device::_onSuccess);
-  QObject::connect(disconnect.command(), &commands::Disconnect::failure, this, &Device::_onFailure);
-  return true;
+  return this->_sendCommand<commands::Disconnect>(State::Disconnecting);
+}
+
+void Device::handleDisconnect() {
+  // Do not allow multiple calls
+  if (is_shutting_down_) {
+    return;
+  }
+
+  is_shutting_down_ = true;
+  if (state_ != State::Connected) {
+    this->deleteLater();
+    return;
+  }
+  this->disconnectDevice();
 }
 
 QString Device::ToString() const {
@@ -83,10 +78,22 @@ void Device::_onSuccess() {
     qDebug("Device successfully unregistered.");
     state_ = State::NotConnected;
     emit this->disconnected(this);
+
+    // Success! The device was successfully disconnected and remove itself from connection.
+    if (is_shutting_down_) {
+      this->deleteLater();
+    }
   }
 }
 
 void Device::_onFailure(const QString &failure) {
+  // During shutdown, a command failed. We have no way to react but simply delete this class.
+  if (is_shutting_down_) {
+    state_ = State::NotConnected;
+    this->deleteLater();
+    return;
+  }
+
   if (state_ == State::Registering) {
     qWarning() << "Registering device failed: " << failure;
     state_ = State::NotConnected;
@@ -107,13 +114,6 @@ void Device::_onFailure(const QString &failure) {
     state_ = State::NotConnected;
     emit this->disconnectionFailed(failure);
   }
-}
-
-bool Device::event(QEvent *event) {
-  if (event->type() == QEvent::Type::ParentChange) {
-    emit this->connectionSet(qobject_cast<Connection *>(this->parent()));
-  }
-  return QObject::event(event);
 }
 
 Connection *Device::connection() {

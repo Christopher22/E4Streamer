@@ -5,7 +5,7 @@
 #ifndef E4STREAMER_SRC_MODEL_SERVER_H_
 #define E4STREAMER_SRC_MODEL_SERVER_H_
 
-// Required for propery
+// Required for property
 #include "Connection.h"
 
 #include <QObject>
@@ -16,32 +16,34 @@ class QThread;
 class QProcess;
 
 namespace e4streamer::model {
+class ConnectionManager;
+
 class Server : public QObject {
  Q_OBJECT
 
  public:
   enum class State {
-	NotConnected,
-	ServerStarting,
-	Connecting,
-	Connected
+    NotConnected,
+    ServerStarting,
+    Connecting,
+    Connected
   };
 
   Q_PROPERTY(Connection *connection
-				 READ
-					 connection
-				 NOTIFY
-				 connected)
+                 READ
+                     connection
+                 NOTIFY
+                 connected)
   Q_PROPERTY(bool ready
-				 READ
-					 isReady
-				 NOTIFY
-				 readinessChanged)
+                 READ
+                     isReady
+                 NOTIFY
+                 readinessChanged)
 
   explicit Server(QString server_path = QString(),
-				  QString api_key = QString(),
-				  quint16 port = 8000,
-				  QObject *parent = nullptr);
+                  QString api_key = QString(),
+                  quint16 port = 8000,
+                  QObject *parent = nullptr);
   ~Server() override;
   bool start();
   [[nodiscard]] bool isReady() const noexcept;
@@ -51,23 +53,23 @@ class Server : public QObject {
   bool setPort(quint16 port);
 
   [[nodiscard]] inline quint16 port() const noexcept {
-	return port_;
+    return port_;
   }
 
   [[nodiscard]] inline QString apiKey() const noexcept {
-	return api_key_;
+    return api_key_;
   }
 
   [[nodiscard]] inline QString serverPath() const noexcept {
-	return server_path_;
+    return server_path_;
   }
 
   [[nodiscard]] inline Connection *connection() {
-	return state_ == State::Connected ? connection_ : nullptr;
+    return state_ == State::Connected ? connection_ : nullptr;
   }
 
   [[nodiscard]] inline State state() const {
-	return state_;
+    return state_;
   }
 
  signals:
@@ -77,27 +79,28 @@ class Server : public QObject {
   void connected(Connection *connection);
 
  private:
+  void _connectToConnection(Connection *connection);
   void _cleanUp();
 
   template<typename T, typename F>
   bool _set_value(const T &value, F setter) {
-	if (state_ != State::NotConnected) {
-	  return false;
-	}
+    if (state_ != State::NotConnected) {
+      return false;
+    }
 
-	const bool old_is_ready = this->isReady();
-	setter(value);
-	const bool new_is_ready = this->isReady();
-	if (old_is_ready != new_is_ready) {
-	  emit this->readinessChanged(new_is_ready);
-	}
-	return true;
+    const bool old_is_ready = this->isReady();
+    setter(value);
+    const bool new_is_ready = this->isReady();
+    if (old_is_ready != new_is_ready) {
+      emit this->readinessChanged(new_is_ready);
+    }
+    return true;
   }
 
   QString server_path_, api_key_;
   quint16 port_;
   Connection *connection_;
-  QThread *background_worker_;
+  ConnectionManager *background_worker_;
   QProcess *background_server_;
   State state_;
 };

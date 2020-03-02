@@ -18,20 +18,21 @@
 namespace e4streamer::view::widgets {
 
 ServerConfig::ServerConfig(QWidget *parent) : QWidget(parent), server_(new model::Server()) {
+  server_->setParent(this);
   QObject::connect(server_, &model::Server::connectionFailed, this, &ServerConfig::_onConnectionFailed);
 
   auto *server_path = new util::FileSelector(tr("Please select the Empatica server"),
-											 "Server (EmpaticaBLEServer.exe)",
-											 false,
-											 QString(),
-											 this);
+                                             "Server (EmpaticaBLEServer.exe)",
+                                             false,
+                                             QString(),
+                                             this);
   QObject::connect(server_path, &util::FileSelector::pathSelected, server_, &model::Server::setServerPath);
 
   auto *port = new QSpinBox(this);
   port->setRange(1024, std::numeric_limits<quint16>::max());
   port->setValue(server_->port());
   QObject::connect(port, qOverload<int>(&QSpinBox::valueChanged), [&](int value) {
-	server_->setPort(value);
+    server_->setPort(value);
   });
 
   auto *api_key = new QLineEdit(nullptr);
@@ -46,7 +47,7 @@ ServerConfig::ServerConfig(QWidget *parent) : QWidget(parent), server_(new model
 }
 
 void ServerConfig::_onConnectionFailed(const QString &error) {
-  QMessageBox::warning(nullptr, "Unable to establish connection", error);
+  QMessageBox::warning(this, "Unable to establish connection", error);
 }
 
 model::Connection *ServerConfig::connection() const {
