@@ -9,10 +9,10 @@
 
 namespace e4streamer::view {
 Wizard::Wizard(QWidget *widget)
-    : QWizard(widget),
-      server_page_(new ServerPage(this)),
-      device_page_(new DevicePage(this)),
-      recording_page_(new RecordingPage(this)) {
+	: QWizard(widget, Qt::WindowFlags(Qt::MSWindowsFixedSizeDialogHint)),
+	  server_page_(new ServerPage(this)),
+	  device_page_(new DevicePage(this)),
+	  recording_page_(new RecordingPage(this)) {
   this->setOption(QWizard::HaveCustomButton1, true);
   this->setOption(QWizard::HaveHelpButton, false);
 
