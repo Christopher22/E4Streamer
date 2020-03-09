@@ -18,8 +18,10 @@ class Devices : public QListWidget {
  Q_OBJECT
 
  public:
-  explicit Devices(QWidget *parent = nullptr);
+  explicit Devices(bool connect_manually = true, QWidget *parent = nullptr);
   bool setConnection(model::Connection *connection);
+  void setConnectManually(bool connect_manually);
+
   bool updateDevices();
   [[nodiscard]] model::Device *selectedDevice() const;
 
@@ -32,6 +34,7 @@ class Devices : public QListWidget {
  private:
   model::Connection *connection_;
   model::Device *selected_device_;
+  bool connect_manually_;
 
   void _connectDevice(model::Device *device);
   void _selectDevice(QListWidgetItem *item);

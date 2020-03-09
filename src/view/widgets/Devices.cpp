@@ -12,8 +12,8 @@
 
 namespace e4streamer::view::widgets {
 
-Devices::Devices(QWidget *parent)
-	: QListWidget(parent), connection_(nullptr), selected_device_(nullptr) {
+Devices::Devices(bool connect_manually, QWidget *parent)
+	: QListWidget(parent), connection_(nullptr), selected_device_(nullptr), connect_manually_(connect_manually) {
   auto *shortcut = new QShortcut(QKeySequence::Refresh, this);
   QObject::connect(shortcut, &QShortcut::activated, this, &Devices::updateDevices);
   QObject::connect(this, &Devices::itemDoubleClicked, this, &Devices::_selectDevice);
@@ -27,7 +27,7 @@ bool Devices::updateDevices() {
   this->_clearDevices();
   this->setEnabled(false);
 
-  auto command = connection_->send<model::commands::DiscoverDevices>();
+  auto command = connection_->send<model::commands::DiscoverDevices>(connect_manually_);
   QObject::connect(command.command(), &model::commands::DiscoverDevices::success, this, &Devices::_updateDevices);
   QObject::connect(command.command(), &model::commands::DiscoverDevices::failure, this, &Devices::_handleUpdateFailure);
 
@@ -136,6 +136,10 @@ void Devices::setSelectedDevice(model::Device *connected_device) {
   if (connected_device != old_device) {
 	emit this->deviceSelected(connected_device);
   }
+}
+
+void Devices::setConnectManually(bool connect_manually) {
+  connect_manually_ = connect_manually;
 }
 
 }

@@ -16,15 +16,15 @@ class Device : public Disconnectable {
 
  public:
   enum class State {
-    NotConnected,
-    Registering,
-    Connecting,
-    Connected,
-    Disconnecting,
-    Unregistering
+	NotConnected,
+	Registering,
+	Connecting,
+	Connected,
+	Disconnecting,
+	Unregistering
   };
 
-  Device(QString id, QString name, bool is_allowed, Connection *connection = nullptr);
+  Device(QString id, QString name, bool is_allowed, bool connect_manually = true, Connection *connection = nullptr);
   ~Device() override;
   [[nodiscard]] QString ToString() const;
   bool connectDevice();
@@ -32,15 +32,15 @@ class Device : public Disconnectable {
   void handleDisconnect() override;
 
   [[nodiscard]] inline bool isConnectable() const {
-    return is_allowed_;
+	return is_allowed_;
   }
 
   [[nodiscard]] inline const QString &id() const {
-    return id_;
+	return id_;
   }
 
   [[nodiscard]] inline State state() const {
-    return state_;
+	return state_;
   }
 
  signals:
@@ -56,20 +56,20 @@ class Device : public Disconnectable {
 
   template<typename T>
   bool _sendCommand(State next_state) {
-    auto *connection = this->connection();
-    if (connection == nullptr) {
-      return false;
-    }
+	auto *connection = this->connection();
+	if (connection == nullptr) {
+	  return false;
+	}
 
-    state_ = next_state;
-    auto connect = connection->send<T>(this, nullptr);
-    QObject::connect(connect.command(), &T::success, this, &Device::_onSuccess);
-    QObject::connect(connect.command(), &T::failure, this, &Device::_onFailure);
-    return true;
+	state_ = next_state;
+	auto connect = connection->send<T>(this, nullptr);
+	QObject::connect(connect.command(), &T::success, this, &Device::_onSuccess);
+	QObject::connect(connect.command(), &T::failure, this, &Device::_onFailure);
+	return true;
   }
 
   const QString id_, name_;
-  const bool is_allowed_;
+  const bool is_allowed_, connect_manually_;
   State state_;
   bool is_shutting_down_;
 };
