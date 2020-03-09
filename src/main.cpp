@@ -6,7 +6,7 @@ int main(int argc, char **argv) {
   QApplication application(argc, argv);
   QApplication::setApplicationName("E4Streamer");
   QApplication::setOrganizationName("Christopher Gundler");
-  QApplication::setApplicationVersion("0.1.2.1");
+  QApplication::setApplicationVersion("0.1.2.2");
 
   auto *wizard = new e4streamer::view::Wizard();
   QObject::connect(wizard, &e4streamer::view::Wizard::finished, [&] {
