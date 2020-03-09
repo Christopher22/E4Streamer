@@ -13,7 +13,7 @@
 
 namespace e4streamer::view {
 
-DevicePage::DevicePage(QWidget *parent) : QWizardPage(parent), devices_(new widgets::Devices(this)) {
+DevicePage::DevicePage(QWidget *parent) : QWizardPage(parent), devices_(new widgets::Devices(false, this)) {
   this->setTitle(tr("Step 2: Connect to a E4"));
   this->setSubTitle(tr(
 	  "Please select a device by double-clicking on its entry. Use %1 to update the devices.")
@@ -39,12 +39,15 @@ void DevicePage::initializePage() {
   devices_->updateDevices();
 }
 
-bool DevicePage::validatePage() {
-  return QWizardPage::validatePage();
-}
-
 bool DevicePage::isComplete() const {
   return QWizardPage::isComplete() && devices_->selectedDevice() != nullptr;
+}
+
+void DevicePage::cleanupPage() {
+  QWizardPage::cleanupPage();
+  if (devices_->selectedDevice() != nullptr && devices_->selectedDevice()->state() == model::Device::State::Connected) {
+	devices_->selectedDevice()->disconnectDevice();
+  }
 }
 
 }

@@ -4,13 +4,14 @@
 
 #include "Wizard.h"
 #include "ServerPage.h"
+#include "RemoteConnectionPage.h"
 #include "DevicePage.h"
 #include "RecordingPage.h"
 
 namespace e4streamer::view {
 Wizard::Wizard(QWidget *widget)
 	: QWizard(widget, Qt::WindowFlags(Qt::MSWindowsFixedSizeDialogHint)),
-	  connection_page_(new ServerPage(this)),
+	  connection_page_(new RemoteConnectionPage(this)),
 	  device_page_(new DevicePage(this)),
 	  recording_page_(new RecordingPage(this)) {
   this->setOption(QWizard::HaveCustomButton1, true);

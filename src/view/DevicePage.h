@@ -16,7 +16,7 @@ class DevicePage : public QWizardPage {
  public:
   explicit DevicePage(QWidget *parent = nullptr);
   void initializePage() override;
-  bool validatePage() override;
+  void cleanupPage() override;
   [[nodiscard]] bool isComplete() const override;
  private:
   widgets::Devices *devices_;
