@@ -15,7 +15,14 @@
 namespace e4streamer::model {
 
 Connection::Connection(QObject *parent) : QTcpSocket(parent), buffer_(), shutdown_state_(ShutdownState::NoShutdown) {
-  QObject::connect(this, &QTcpSocket::readyRead, this, &Connection::_processReceivedData);
+  this->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
+
+  QObject::connect(this, &QTcpSocket::readyRead, this, &Connection::processData);
+  QObject::connect(this, &QTcpSocket::connected, this, [this] {
+	qDebug() << "Setting socket options...";
+	this->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+	this->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
+  });
 }
 
 Connection::~Connection() {
@@ -28,20 +35,29 @@ void Connection::_writeLine(const QString &line) {
   qDebug() << "Wrote" << line << "to server.";
 }
 
-void Connection::_processReceivedData() {
-  buffer_.push_back(this->readAll());
-  while (!buffer_.isEmpty()) {
-	int length = buffer_.indexOf('\n', 0) + 1;
-	if (length == 0) {
-	  break;
-	}
-
-	QString response = QString::fromUtf8(buffer_.mid(0, length)).trimmed();
-	if (!response.isEmpty()) {
-	  this->_handleResponse(response);
-	}
-	buffer_.remove(0, length);
+bool Connection::processData() {
+  if (shutdown_state_ != ShutdownState::NoShutdown || this->state() != QAbstractSocket::ConnectedState) {
+	qDebug() << "The connection is not valid!";
+	return false;
   }
+
+  while (this->bytesAvailable() > 0) {
+	buffer_.push_back(this->readAll());
+	while (!buffer_.isEmpty()) {
+	  int length = buffer_.indexOf('\n', 0) + 1;
+	  if (length == 0) {
+		break;
+	  }
+
+	  QString response = QString::fromUtf8(buffer_.mid(0, length)).trimmed();
+	  if (!response.isEmpty()) {
+		this->_handleResponse(response);
+	  }
+	  buffer_.remove(0, length);
+	}
+  }
+
+  return true;
 }
 
 void Connection::_handleResponse(const QString &received_string) {

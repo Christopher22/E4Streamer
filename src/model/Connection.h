@@ -55,6 +55,7 @@ class Connection : public QTcpSocket {
 
   bool addChild(Disconnectable *child);
   bool removeChild(Disconnectable *child);
+  bool processData();
   Q_INVOKABLE void registerCommand(Command *command);
 
   template<typename T, typename... Args>
@@ -80,7 +81,6 @@ class Connection : public QTcpSocket {
 
   bool _clear();
   void _writeLine(const QString &line);
-  void _processReceivedData();
   void _handleResponse(const QString &response);
 
   QByteArray buffer_;

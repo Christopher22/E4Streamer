@@ -4,11 +4,11 @@
 
 #include "ConnectionManager.h"
 #include "Connection.h"
-#include <QPointer>
 
 namespace e4streamer::model {
 
-ConnectionManager::ConnectionManager(QObject *parent) : QThread(parent), connection_(nullptr) {
+ConnectionManager::ConnectionManager(const QHostAddress &address, quint16 port, QObject *parent)
+	: QThread(parent), connection_(nullptr), address_(address), port_(port) {
 
 }
 
@@ -20,15 +20,24 @@ void ConnectionManager::run() {
 	this->quit();
   });
 
-  emit this->connectionCreated(connection_);
+  connection_->connectToHost(address_, port_);
+  if (connection_->waitForConnected(3000)) {
+	emit this->connected(connection_);
 
-  qDebug() << "Connection created. Running message queue of manager.";
-  this->exec();
+	qDebug() << "Connection created. Running message queue of manager.";
+	this->exec();
 
-  qDebug() << "Message queue of manager ended.";
-  if (connection_ != nullptr) {
-	qWarning() << "Connection did not deleted itself. Manager will handle that.";
+	qDebug() << "Message queue of manager ended.";
+	if (connection_ != nullptr) {
+	  qWarning() << "Connection did not deleted itself. Manager will handle that.";
+	  connection_->deleteLater();
+	  connection_ = nullptr;
+	}
+  } else {
+	qDebug() << "Connection failed: " << connection_->errorString();
+	emit this->connectionFailed(connection_->errorString());
 	connection_->deleteLater();
+	connection_ = nullptr;
   }
 }
 
@@ -45,6 +54,8 @@ void ConnectionManager::shutdown(unsigned long timeout) {
 		connection_->kill();
 	  });
 	}
+
+	connection_ = nullptr;
   }
 }
 
