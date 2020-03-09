@@ -55,6 +55,8 @@ void ConnectionManager::shutdown(unsigned long timeout) {
 	  });
 	}
 
+	// Wait until thread exited
+	this->wait();
 	connection_ = nullptr;
   }
 }
