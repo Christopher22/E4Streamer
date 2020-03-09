@@ -14,7 +14,7 @@ class Device;
 }
 
 namespace view {
-class ServerPage;
+class ConnectionPage;
 class DevicePage;
 class RecordingPage;
 
@@ -26,7 +26,7 @@ class Wizard : public QWizard {
   model::Connection *connection();
 
  private:
-  ServerPage *server_page_;
+  ConnectionPage *connection_page_;
   DevicePage *device_page_;
   RecordingPage *recording_page_;
 };
