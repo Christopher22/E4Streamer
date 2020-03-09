@@ -7,6 +7,8 @@
 
 #include <QWizardPage>
 
+class QAbstractButton;
+
 namespace e4streamer {
 
 namespace model {
@@ -25,6 +27,7 @@ class ConnectionPage : public QWizardPage {
  protected:
   virtual void connect() = 0;
   void setConnected(bool is_connected);
+  QAbstractButton *connectionButton();
 
   bool is_connected_{};
 };

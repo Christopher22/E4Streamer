@@ -15,7 +15,7 @@ ConnectionPage::ConnectionPage(QWidget *parent) : QWizardPage(parent), is_connec
 void e4streamer::view::ConnectionPage::initializePage() {
   QWizardPage::initializePage();
 
-  QAbstractButton *button = this->wizard()->button(QWizard::CustomButton1);
+  QAbstractButton *button = this->connectionButton();
   button->setText(tr("Connect"));
   button->setEnabled(false);
   button->setVisible(true);
@@ -33,10 +33,6 @@ bool ConnectionPage::validatePage() {
 }
 
 void ConnectionPage::setConnected(bool is_connected) {
-  if (is_connected == is_connected_) {
-	return;
-  }
-
   is_connected_ = is_connected;
   if (!is_connected) {
 	QAbstractButton *button = this->wizard()->button(QWizard::CustomButton1);
@@ -50,6 +46,10 @@ void ConnectionPage::setConnected(bool is_connected) {
 
 bool ConnectionPage::isComplete() const {
   return QWizardPage::isComplete() && is_connected_;
+}
+
+QAbstractButton *ConnectionPage::connectionButton() {
+  return this->wizard()->button(QWizard::CustomButton1);
 }
 
 }

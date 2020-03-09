@@ -23,7 +23,7 @@ ServerPage::ServerPage(QWidget *parent) : ConnectionPage(parent), server_config_
 
   // Enable loading when user made usable input
   QObject::connect(server_config_->model(), &model::Server::readinessChanged, [&](bool is_ready) {
-	this->wizard()->button(QWizard::CustomButton1)->setEnabled(is_ready);
+	this->connectionButton()->setEnabled(is_ready);
   });
 
   // Allow continue
@@ -40,7 +40,7 @@ ServerPage::ServerPage(QWidget *parent) : ConnectionPage(parent), server_config_
 
 void ServerPage::initializePage() {
   ConnectionPage::initializePage();
-  this->wizard()->button(QWizard::CustomButton1)->setEnabled(false);
+  this->connectionButton()->setEnabled(false);
 }
 
 model::Connection *ServerPage::connection() {
